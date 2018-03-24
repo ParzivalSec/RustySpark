@@ -1,0 +1,11 @@
+[[package]]
+name = "mem"
+version = "0.1.0"
+
+[[package]]
+name = "rusty_spark_benchmark"
+version = "0.1.0"
+dependencies = [
+ "mem 0.1.0",
+]
+

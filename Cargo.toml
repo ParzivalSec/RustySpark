@@ -1,0 +1,9 @@
+[package]
+name = "rusty_spark_benchmark"
+version = "0.1.0"
+authors = ["ParzivalSec <lukas.vogl12@gmail.com>"]
+
+[dependencies]
+mem = { path = "mem" }
+
+[workspace]
