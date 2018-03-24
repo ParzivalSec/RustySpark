@@ -1,3 +1,5 @@
+pub mod virtual_mem;
+
 #[cfg(test)]
 mod tests {
     #[test]
