@@ -16,7 +16,7 @@ struct LinearAllocatorStorage {
     pub use_internal_mem:   bool,
     pub mem_begin:          *mut u8,
     pub mem_end:            *mut u8,
-    pub current_prt:        *mut u8,
+    pub current_ptr:        *mut u8,
 }
 
 ///
@@ -51,7 +51,7 @@ impl LinearAllocatorStorage {
             use_internal_mem: true,
             mem_begin: physical_address_space,
             mem_end: unsafe { physical_address_space.offset(size as isize) },
-            current_prt: physical_address_space,
+            current_ptr: physical_address_space,
         }
     }
 }
@@ -96,24 +96,24 @@ impl Allocator for LinearAllocator {
         let mut allocator_storage = self.storage.borrow_mut();
         let offset_before_alignment = offset + ALLOCATION_META_SIZE;
 
-        unsafe { 
+        unsafe {
             // Before aligning the pointer we need to offset it by offset + meta size to
             // properly align the pointer the user receives
-            allocator_storage.current_prt = allocator_storage.current_prt.offset(offset_before_alignment as isize);
-            allocator_storage.current_prt = pointer_util::align_top(allocator_storage.current_prt, alignment) as *mut u8;
-            allocator_storage.current_prt = allocator_storage.current_prt.offset(-(offset_before_alignment as isize));            
+            allocator_storage.current_ptr = allocator_storage.current_ptr.offset(offset_before_alignment as isize);
+            allocator_storage.current_ptr = pointer_util::align_top(allocator_storage.current_ptr, alignment) as *mut u8;
+            allocator_storage.current_ptr = allocator_storage.current_ptr.offset(-(offset_before_alignment as isize));            
             
             // If we overflow we cannot fulfill this allocation and return None
-            let allocation_overflows = allocator_storage.current_prt.offset(size as isize) > allocator_storage.mem_end;
+            let allocation_overflows = allocator_storage.current_ptr.offset(size as isize) > allocator_storage.mem_end;
             if  allocation_overflows {
                 return None;
             }
 
-            let mut user_ptr = allocator_storage.current_prt;
+            let mut user_ptr = allocator_storage.current_ptr;
 
             std::ptr::write(user_ptr as *mut u32, size as u32);
             user_ptr = user_ptr.offset(ALLOCATION_META_SIZE as isize);
-            allocator_storage.current_prt = allocator_storage.current_prt.offset(size as isize);
+            allocator_storage.current_ptr = allocator_storage.current_ptr.offset(size as isize);
             
             Some(
                 AllocatorMem {
@@ -137,7 +137,7 @@ impl Allocator for LinearAllocator {
     ///
     fn reset(&self) {
         let mut storage = self.storage.borrow_mut();
-        storage.current_prt = storage.mem_begin;
+        storage.current_ptr = storage.mem_begin;
     }
 
     ///
