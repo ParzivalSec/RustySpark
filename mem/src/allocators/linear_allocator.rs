@@ -101,19 +101,20 @@ impl Allocator for LinearAllocator {
             // properly align the pointer the user receives
             allocator_storage.current_ptr = allocator_storage.current_ptr.offset(offset_before_alignment as isize);
             allocator_storage.current_ptr = pointer_util::align_top(allocator_storage.current_ptr, alignment) as *mut u8;
-            allocator_storage.current_ptr = allocator_storage.current_ptr.offset(-(offset_before_alignment as isize));            
-            
+
             // If we overflow we cannot fulfill this allocation and return None
             let allocation_overflows = allocator_storage.current_ptr.offset(size as isize) > allocator_storage.mem_end;
             if  allocation_overflows {
                 return None;
             }
 
+            allocator_storage.current_ptr = allocator_storage.current_ptr.offset(-(offset_before_alignment as isize));            
+
             let mut user_ptr = allocator_storage.current_ptr;
 
             std::ptr::write(user_ptr as *mut u32, size as u32);
             user_ptr = user_ptr.offset(ALLOCATION_META_SIZE as isize);
-            allocator_storage.current_ptr = allocator_storage.current_ptr.offset(size as isize);
+            allocator_storage.current_ptr = allocator_storage.current_ptr.offset((size + ALLOCATION_META_SIZE) as isize);
             
             Some(
                 AllocatorMem {
@@ -145,10 +146,14 @@ impl Allocator for LinearAllocator {
     ///
     fn get_allocation_size(&self, memory: &AllocatorMem) -> usize
     {
-        unsafe { 
+        let alloc_header: &mut AllocationHeader;
+
+        unsafe {
             let alloc_header_ptr: *const u32 = memory.ptr.offset(-(ALLOCATION_META_SIZE as isize)) as *const u32;
-            std::ptr::read(alloc_header_ptr) as usize 
+            alloc_header = &mut *(alloc_header_ptr as *mut AllocationHeader);
         }
+
+        alloc_header.allocation_size as usize
     }
 }
 
