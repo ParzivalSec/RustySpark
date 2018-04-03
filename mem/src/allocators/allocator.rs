@@ -9,6 +9,20 @@ pub struct AllocatorMem<'a> {
     pub _phantom_slice: PhantomData<&'a mut [u8]>,
 }
 
+impl<'a> AllocatorMem<'a> {
+    
+    pub fn new(ptr: *mut u8) -> Self {
+        debug_assert!(!ptr.is_null());
+        AllocatorMem {
+            ptr,
+            _phantom_slice: PhantomData,
+        }
+    }
+
+    #[inline]
+    pub fn is_empty(&self) -> bool { self.ptr.is_null() }
+}
+
 ///
 /// Base trait that indicates that a type is able to fullfil allocation requests
 /// issued by the user
