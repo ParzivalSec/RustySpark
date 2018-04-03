@@ -339,10 +339,48 @@ mod tests {
     }
     
     #[test]
-    fn assert_wrong_deallocation() {}
+    #[should_panic(expected = "AllocatorMem was not allocated via `alloc` (front block)")]
+    fn assert_wrong_front_deallocation() {
+        let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
+        let mem_0 = de_stack_alloc.alloc_back(MB, 1, 0).unwrap();
+        de_stack_alloc.dealloc(mem_0);
+    }
 
     #[test]
-    fn reset_whole_allocator() {}
+    #[should_panic(expected = "AllocatorMem was not allocated via `alloc_back` (back block)")]
+    fn assert_wrong_back_deallocation() {
+        let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
+        let mem_0 = de_stack_alloc.alloc(MB, 1, 0).unwrap();
+        de_stack_alloc.dealloc_back(mem_0);
+    }
+
+    #[test]
+    fn return_none_on_back_overlap() {
+        let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
+        let _mem_back = de_stack_alloc.alloc_back(6 * MB, 1, 0);
+        let mem_front = de_stack_alloc.alloc(6 * MB, 1, 0);
+        assert!(mem_front.is_none());
+    }
+
+    #[test]
+    fn return_none_on_front_overlap() {
+        let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
+        let _mem_front = de_stack_alloc.alloc(6 * MB, 1, 0);
+        let mem_back = de_stack_alloc.alloc_back(6 * MB, 1, 0);
+        assert!(mem_back.is_none());
+    }
+
+    #[test]
+    fn reset_whole_allocator() {
+        let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
+        let mem_front_0 = de_stack_alloc.alloc(MB, 4, 0).unwrap();
+        let mem_back_0 = de_stack_alloc.alloc_back(MB, 4, 0).unwrap();
+        de_stack_alloc.reset();
+        let mem_front_1 = de_stack_alloc.alloc(MB, 4, 0).unwrap();
+        assert_eq!(mem_front_0.ptr, mem_front_1.ptr);
+        let mem_back_1 = de_stack_alloc.alloc_back(MB, 4, 0).unwrap();
+        assert_eq!(mem_back_0.ptr, mem_back_1.ptr);
+    }
 
     #[test]
     fn get_right_allocation_size() {
@@ -356,7 +394,7 @@ mod tests {
     }
 
     #[test]
-    fn allocation_do_not_invalidate_prev_ones() {
+    fn front_allocation_do_not_invalidate_prev_ones() {
         struct SomeData {
             pub pos: usize,
             pub vel: usize,
@@ -382,7 +420,7 @@ mod tests {
     }
 
     #[test]
-    fn allocation_back_do_not_invalidate_prev_ones() {
+    fn back_allocation_do_not_invalidate_prev_ones() {
         struct SomeData {
             pub pos: usize,
             pub vel: usize,
