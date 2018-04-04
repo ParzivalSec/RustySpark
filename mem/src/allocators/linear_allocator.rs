@@ -115,7 +115,7 @@ impl Allocator for LinearAllocator {
             std::ptr::write(user_ptr as *mut u32, size as u32);
             user_ptr = user_ptr.offset(ALLOCATION_META_SIZE as isize);
             allocator_storage.current_ptr = allocator_storage.current_ptr.offset((size + ALLOCATION_META_SIZE) as isize);
-            
+
             Some(
                 AllocatorMem {
                     ptr: user_ptr,
@@ -178,6 +178,17 @@ mod tests
         let mem_raw_aligned = linear_alloc.alloc(MB, 16, 0);
         assert!(mem_raw_aligned.is_some());
         assert!(pointer_util::is_aligned_to(mem_raw_aligned.unwrap().ptr, 16));
+    }
+
+    #[test]
+    fn single_allocation_aligned_with_offset() {
+        let linear_alloc: LinearAllocator = LinearAllocator::new(10 * MB);
+        let mem_raw_aligned = linear_alloc.alloc(MB + 8, 16, 4);
+        assert!(mem_raw_aligned.is_some());
+        let ptr = mem_raw_aligned.unwrap().ptr;
+        assert!(!pointer_util::is_aligned_to(ptr, 16), "Pointer without offset applied was aligned");
+        let offsetted_ptr = unsafe { ptr.offset(4) };
+        assert!(pointer_util::is_aligned_to(offsetted_ptr, 16), "User pointer was not properly aligned");
     }
 
     #[test]

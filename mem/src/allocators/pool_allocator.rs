@@ -245,4 +245,49 @@ mod tests {
         let obj_1 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
         assert!(obj_1.is_none());
     }
+
+    #[test]
+    fn allocation_do_not_invalidate_prev_ones() {
+        let pool_alloc = PoolAllocator::new(
+            std::mem::size_of::<Particle>(),
+            10,
+            16,
+            0
+        );
+        
+        let mut part_vec_0 = Vec::new();
+
+        // Get 5 particles and fill them with value, remeber the blocks in a vec
+        for i in 0 .. 5 {
+            let part_mem = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0).unwrap();
+            let particle: &mut Particle = unsafe { &mut *(part_mem.ptr as *mut Particle) };
+
+            particle.lifetime = i as f32;
+            particle.speed = i;
+
+            part_vec_0.push(part_mem);
+        }
+
+        let mut part_vec_1 = Vec::new();
+        // Get another 5 particles into another vec
+        for i in 5 .. 10 {
+            let part_mem = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0).unwrap();
+            let particle: &mut Particle = unsafe { &mut *(part_mem.ptr as *mut Particle) };
+
+            particle.lifetime = i as f32;
+            particle.speed = i;
+
+            part_vec_1.push(part_mem);
+        }
+
+        for idx in 0 .. 5 {
+            let vec_0_part: &mut Particle = unsafe { &mut *(part_vec_0[idx].ptr as *mut Particle) };
+            let vec_1_part: &mut Particle = unsafe { &mut *(part_vec_1[idx].ptr as *mut Particle) };
+
+            assert!(vec_0_part.lifetime == idx as f32, "Particle lifetime from vec 0 was corrupted");
+            assert!(vec_0_part.speed == idx, "Particle speed from vec 0 was corrupted");
+            assert!(vec_1_part.lifetime == (idx + 5) as f32, "Particle lifetime from vec 1 was corrupted");
+            assert!(vec_1_part.speed == idx + 5, "Particle speed from vec 1 was corrupted");
+        }
+    }
 }

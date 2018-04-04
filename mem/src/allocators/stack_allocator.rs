@@ -185,6 +185,17 @@ mod tests
     }
 
     #[test]
+    fn single_allocation_aligned_with_offset() {
+        let stack_allocator = StackAllocator::new(10 * MB);
+        let raw_mem = stack_allocator.alloc(MB + 8, 16, 4);
+        assert!(raw_mem.is_some());
+        let ptr = raw_mem.unwrap().ptr;
+        assert!(!pointer_util::is_aligned_to(ptr, 16), "Pointer without offset applied was already aligned");
+        let offsetted_ptr = unsafe { ptr.offset(4) };
+        assert!(pointer_util::is_aligned_to(offsetted_ptr, 16), "User pointer was not properly aligned");
+    }
+
+    #[test]
     fn multiple_allocations() {
         let stack_allocator = StackAllocator::new(10 * MB);
         let raw_mem_0 = stack_allocator.alloc(1 * MB, 1, 0);

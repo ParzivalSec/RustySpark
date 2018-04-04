@@ -277,11 +277,33 @@ mod tests {
     }
 
     #[test]
+    fn single_allocation_front_aligned_with_offset() {
+        let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
+        let raw_mem = de_stack_alloc.alloc(MB + 8, 16, 4);
+        assert!(raw_mem.is_some());
+        let ptr = raw_mem.unwrap().ptr;
+        assert!(!pointer_util::is_aligned_to(ptr, 16), "Pointer without offset applied was already aligned");
+        let offsetted_ptr = unsafe { ptr.offset(4) };
+        assert!(pointer_util::is_aligned_to(offsetted_ptr, 16), "User pointer was not properly aligned");
+    }
+
+    #[test]
     fn single_allocation_back_aligned() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
         let mem = de_stack_alloc.alloc_back(MB, 16, 0);
         assert!(mem.is_some());
         assert!(pointer_util::is_aligned_to(mem.unwrap().ptr, 16));
+    }
+
+    #[test]
+    fn single_allocation_back_aligned_with_offset() {
+        let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
+        let raw_mem = de_stack_alloc.alloc_back(MB + 8, 16, 4);
+        assert!(raw_mem.is_some());
+        let ptr = raw_mem.unwrap().ptr;
+        assert!(!pointer_util::is_aligned_to(ptr, 16), "Pointer without offset applied was already aligned");
+        let offsetted_ptr = unsafe { ptr.offset(4) };
+        assert!(pointer_util::is_aligned_to(offsetted_ptr, 16), "User pointer was not properly aligned");
     }
 
     #[test]
