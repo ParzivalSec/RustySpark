@@ -77,12 +77,13 @@ pub struct PoolAllocator {
 
 impl PoolAllocator {
     pub fn new(max_element_size: usize, element_count: usize, max_element_alignment: usize, offset: usize) -> PoolAllocator {
-        let required_memory_size = (element_count * max_element_size) + max_element_alignment;
+        let block_min_size = calculate_minimal_block_size(max_element_size, max_element_alignment);
+        let required_memory_size = (element_count * block_min_size) + max_element_alignment;
 
         PoolAllocator {
             storage: RefCell::new(PoolAllocatorStorage::new(
                 required_memory_size,
-                calculate_minimal_block_size(max_element_size, max_element_alignment),
+                block_min_size,
                 max_element_size,
                 max_element_alignment,
                 offset)
@@ -141,9 +142,6 @@ impl Allocator for PoolAllocator {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    const KB: usize = 1024;
-    const MB: usize = KB * 1024;
     
     struct Particle {
         pub lifetime:   f32,
@@ -178,6 +176,23 @@ mod tests {
     }
 
     #[test]
+    fn single_allocation_aligned_with_offset() {
+        let pool_alloc = PoolAllocator::new(
+            std::mem::size_of::<Particle>() + 8, // Adding 8, for 4 byte offset at each end of block
+            10,
+            32,
+            4
+        );
+
+        let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>() + 8, 32, 4);
+        assert!(obj_0.is_some());
+        let mem_block = obj_0.unwrap();
+        assert!(!pointer_util::is_aligned_to(mem_block.ptr, 32));
+        let offsetted_ptr = unsafe { mem_block.ptr.offset(4) };
+        assert!(pointer_util::is_aligned_to(offsetted_ptr, 32));
+    }
+
+    #[test]
     fn multiple_allocations() {
         let pool_alloc = PoolAllocator::new(
             std::mem::size_of::<Particle>(),
@@ -186,14 +201,10 @@ mod tests {
             0
         );
 
-        let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0);
-        assert!(obj_0.is_some());
-        let obj_1 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0);
-        assert!(obj_1.is_some());
-        let obj_2 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0);
-        assert!(obj_2.is_some());
-        let obj_3 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0);
-        assert!(obj_3.is_some());
+        for _ in 0 .. 3 {
+            let obj = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0);
+            assert!(obj.is_some());
+        }
     }
 
     #[test]
@@ -205,17 +216,33 @@ mod tests {
             0
         );
 
-        let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
-        assert!(obj_0.is_some());
-        assert!(pointer_util::is_aligned_to(obj_0.unwrap().ptr, 16));
+        for _ in 0 .. 3 {
+            let obj = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
+            assert!(obj.is_some());
+            assert!(pointer_util::is_aligned_to(obj.unwrap().ptr, 16));
+        }
+    }
+
+    #[test]
+    fn return_none_on_oom() {
+        let pool_alloc = PoolAllocator::new(
+            std::mem::size_of::<Particle>(),
+            10,
+            16,
+            0
+        );
+
+        // We can allocate more than 10 Particles bc of page size rounging when allocating virt-mem
+        // In fact we are leaking memory inside of this loop bc an AllocatorMem is in the responsibility
+        // of the user - and bc each get dropped at the end of the scope we leak the mem in the allocator
+        // hence triggering the oom in the last allocation request (a later implemented AllocatorBox will
+        // add a safety layer for mem-leaks, deallocating the AllocatorMem when dropped)
+        for _ in 0 .. 12 {
+            let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
+            assert!(obj_0.is_some());
+        }
+
         let obj_1 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
-        assert!(obj_1.is_some());
-        assert!(pointer_util::is_aligned_to(obj_1.unwrap().ptr, 16));
-        let obj_2 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
-        assert!(obj_2.is_some());
-        assert!(pointer_util::is_aligned_to(obj_2.unwrap().ptr, 16));
-        let obj_3 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
-        assert!(obj_3.is_some());
-        assert!(pointer_util::is_aligned_to(obj_3.unwrap().ptr, 16));
+        assert!(obj_1.is_none());
     }
 }
