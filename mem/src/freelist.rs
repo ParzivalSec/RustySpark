@@ -16,14 +16,19 @@ impl FreeList {
 
         let mem_range_in_bytes = end as usize - begin as usize;
         let number_of_blocks = mem_range_in_bytes / block_size;
-        let mut free_list: *mut u8 = ptr::null_mut();
+        let signed_block_size = block_size as isize;
+        let free_list: *mut u8 = begin;
 
-        let mut memory_back = end;
-        for _ in 0 .. number_of_blocks {
-            memory_back = unsafe { memory_back.offset(-(block_size as isize)) };
-            let next_ptr: *mut *mut u8 = memory_back as *mut *mut u8;
-            unsafe { *next_ptr = free_list };
-            free_list = next_ptr as *mut u8;
+        let mut current: *mut *mut u8 = free_list as *mut *mut u8;
+        let mut memory: *mut u8 = begin;
+        memory = unsafe { memory.offset(signed_block_size) };
+        
+        unsafe {
+            for _ in 0 .. number_of_blocks {         
+                *current = memory.offset(signed_block_size);
+                current = *current as *mut *mut u8;
+                memory = memory.offset(signed_block_size);
+            }
         }
 
         FreeList {
