@@ -1,5 +1,4 @@
 use std;
-use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::{ virtual_mem, pointer_util };
@@ -74,7 +73,7 @@ pub struct DoubleEndedStackAllocator {
 }
 
 impl DoubleEndedStackAllocator {
-    pub fn alloc_back(&self, size: usize, alignment: usize, offset: usize) -> Option<MemoryBlock> {
+    pub fn alloc_raw_back(&self, size: usize, alignment: usize, offset: usize) -> Option<MemoryBlock> {
        debug_assert!(pointer_util::is_pot(alignment), "Alignment needs to be a power of two");
 
         let mut allocator_storage = self.storage.borrow_mut();
@@ -112,7 +111,7 @@ impl DoubleEndedStackAllocator {
         }
     }
 
-    pub fn dealloc_back(&self, memory: MemoryBlock) {
+    pub fn dealloc_raw_back(&self, memory: MemoryBlock) {
        let raw_mem = memory.ptr;
 
         unsafe {
@@ -152,7 +151,7 @@ impl BasicAllocator for DoubleEndedStackAllocator {
 
 impl Allocator for DoubleEndedStackAllocator {
     
-    fn alloc(&self, size: usize, alignment: usize, offset: usize) -> Option<MemoryBlock> {
+    fn alloc_raw(&self, size: usize, alignment: usize, offset: usize) -> Option<MemoryBlock> {
         debug_assert!(pointer_util::is_pot(alignment), "Alignment needs to be a power of two");
 
         let mut allocator_storage = self.storage.borrow_mut();
@@ -192,7 +191,7 @@ impl Allocator for DoubleEndedStackAllocator {
         }
     }
 
-    fn dealloc(&self, memory: MemoryBlock) {
+    fn dealloc_raw(&self, memory: MemoryBlock) {
         let raw_mem = memory.ptr;
 
         unsafe {
@@ -252,21 +251,21 @@ mod tests {
     #[test]
     fn single_allocation_front() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem = de_stack_alloc.alloc(MB, 1, 0);
+        let mem = de_stack_alloc.alloc_raw(MB, 1, 0);
         assert!(mem.is_some());
     }
 
     #[test]
     fn single_allocation_back() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem = de_stack_alloc.alloc_back(MB, 1, 0);
+        let mem = de_stack_alloc.alloc_raw_back(MB, 1, 0);
         assert!(mem.is_some());
     }
 
     #[test]
     fn single_allocation_front_aligned() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem = de_stack_alloc.alloc(MB, 16, 0);
+        let mem = de_stack_alloc.alloc_raw(MB, 16, 0);
         assert!(mem.is_some());
         assert!(pointer_util::is_aligned_to(mem.unwrap().ptr, 16));
     }
@@ -274,7 +273,7 @@ mod tests {
     #[test]
     fn single_allocation_front_aligned_with_offset() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let raw_mem = de_stack_alloc.alloc(MB + 8, 16, 4);
+        let raw_mem = de_stack_alloc.alloc_raw(MB + 8, 16, 4);
         assert!(raw_mem.is_some());
         let ptr = raw_mem.unwrap().ptr;
         assert!(!pointer_util::is_aligned_to(ptr, 16), "Pointer without offset applied was already aligned");
@@ -285,7 +284,7 @@ mod tests {
     #[test]
     fn single_allocation_back_aligned() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem = de_stack_alloc.alloc_back(MB, 16, 0);
+        let mem = de_stack_alloc.alloc_raw_back(MB, 16, 0);
         assert!(mem.is_some());
         assert!(pointer_util::is_aligned_to(mem.unwrap().ptr, 16));
     }
@@ -293,7 +292,7 @@ mod tests {
     #[test]
     fn single_allocation_back_aligned_with_offset() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let raw_mem = de_stack_alloc.alloc_back(MB + 8, 16, 4);
+        let raw_mem = de_stack_alloc.alloc_raw_back(MB + 8, 16, 4);
         assert!(raw_mem.is_some());
         let ptr = raw_mem.unwrap().ptr;
         assert!(!pointer_util::is_aligned_to(ptr, 16), "Pointer without offset applied was already aligned");
@@ -304,38 +303,38 @@ mod tests {
     #[test]
     fn multiple_allocations_front() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_0 = de_stack_alloc.alloc(MB, 1, 0);
+        let mem_0 = de_stack_alloc.alloc_raw(MB, 1, 0);
         assert!(mem_0.is_some());
-        let mem_1 = de_stack_alloc.alloc(MB, 1, 0);
+        let mem_1 = de_stack_alloc.alloc_raw(MB, 1, 0);
         assert!(mem_1.is_some());
-        let mem_2 = de_stack_alloc.alloc(MB, 1, 0);
+        let mem_2 = de_stack_alloc.alloc_raw(MB, 1, 0);
         assert!(mem_2.is_some());
-        let mem_3 = de_stack_alloc.alloc(MB, 1, 0);
+        let mem_3 = de_stack_alloc.alloc_raw(MB, 1, 0);
         assert!(mem_3.is_some());
     }
 
     #[test]
     fn multiple_allocations_back() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_0 = de_stack_alloc.alloc_back(MB, 1, 0);
+        let mem_0 = de_stack_alloc.alloc_raw_back(MB, 1, 0);
         assert!(mem_0.is_some());
-        let mem_1 = de_stack_alloc.alloc_back(MB, 1, 0);
+        let mem_1 = de_stack_alloc.alloc_raw_back(MB, 1, 0);
         assert!(mem_1.is_some());
-        let mem_2 = de_stack_alloc.alloc_back(MB, 1, 0);
+        let mem_2 = de_stack_alloc.alloc_raw_back(MB, 1, 0);
         assert!(mem_2.is_some());
-        let mem_3 = de_stack_alloc.alloc_back(MB, 1, 0);
+        let mem_3 = de_stack_alloc.alloc_raw_back(MB, 1, 0);
         assert!(mem_3.is_some());
     }
 
     #[test]
     fn dealloc_front() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_0 = de_stack_alloc.alloc(MB, 1, 0).unwrap();
+        let mem_0 = de_stack_alloc.alloc_raw(MB, 1, 0).unwrap();
         
         unsafe { std::ptr::write(mem_0.ptr as *mut u32, 0xDEADBEEF) };
-        de_stack_alloc.dealloc(mem_0);
+        de_stack_alloc.dealloc_raw(mem_0);
 
-        let mem_1 = de_stack_alloc.alloc(MB, 1, 0).unwrap();
+        let mem_1 = de_stack_alloc.alloc_raw(MB, 1, 0).unwrap();
         let marker = unsafe { std::ptr::read(mem_1.ptr as *mut u32) };
 
         assert!(marker == 0xDEADBEEF, "Previously placed marker was not there after deallocation");
@@ -344,12 +343,12 @@ mod tests {
     #[test]
     fn dealloc_back() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_0 = de_stack_alloc.alloc_back(MB, 1, 0).unwrap();
+        let mem_0 = de_stack_alloc.alloc_raw_back(MB, 1, 0).unwrap();
         
         unsafe { std::ptr::write(mem_0.ptr as *mut u32, 0xDEADBEEF) };
-        de_stack_alloc.dealloc_back(mem_0);
+        de_stack_alloc.dealloc_raw_back(mem_0);
 
-        let mem_1 = de_stack_alloc.alloc_back(MB, 1, 0).unwrap();
+        let mem_1 = de_stack_alloc.alloc_raw_back(MB, 1, 0).unwrap();
         let marker = unsafe { std::ptr::read(mem_1.ptr as *mut u32) };
 
         assert!(marker == 0xDEADBEEF, "Previously placed marker was not there after deallocation");
@@ -359,54 +358,54 @@ mod tests {
     #[should_panic(expected = "AllocatorMem was not allocated via `alloc` (front block)")]
     fn assert_wrong_front_deallocation() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_0 = de_stack_alloc.alloc_back(MB, 1, 0).unwrap();
-        de_stack_alloc.dealloc(mem_0);
+        let mem_0 = de_stack_alloc.alloc_raw_back(MB, 1, 0).unwrap();
+        de_stack_alloc.dealloc_raw(mem_0);
     }
 
     #[test]
     #[should_panic(expected = "AllocatorMem was not allocated via `alloc_back` (back block)")]
     fn assert_wrong_back_deallocation() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_0 = de_stack_alloc.alloc(MB, 1, 0).unwrap();
-        de_stack_alloc.dealloc_back(mem_0);
+        let mem_0 = de_stack_alloc.alloc_raw(MB, 1, 0).unwrap();
+        de_stack_alloc.dealloc_raw_back(mem_0);
     }
 
     #[test]
     fn return_none_on_back_overlap() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let _mem_back = de_stack_alloc.alloc_back(6 * MB, 1, 0);
-        let mem_front = de_stack_alloc.alloc(6 * MB, 1, 0);
+        let _mem_back = de_stack_alloc.alloc_raw_back(6 * MB, 1, 0);
+        let mem_front = de_stack_alloc.alloc_raw(6 * MB, 1, 0);
         assert!(mem_front.is_none());
     }
 
     #[test]
     fn return_none_on_front_overlap() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let _mem_front = de_stack_alloc.alloc(6 * MB, 1, 0);
-        let mem_back = de_stack_alloc.alloc_back(6 * MB, 1, 0);
+        let _mem_front = de_stack_alloc.alloc_raw(6 * MB, 1, 0);
+        let mem_back = de_stack_alloc.alloc_raw_back(6 * MB, 1, 0);
         assert!(mem_back.is_none());
     }
 
     #[test]
     fn reset_whole_allocator() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_front_0 = de_stack_alloc.alloc(MB, 4, 0).unwrap();
-        let mem_back_0 = de_stack_alloc.alloc_back(MB, 4, 0).unwrap();
+        let mem_front_0 = de_stack_alloc.alloc_raw(MB, 4, 0).unwrap();
+        let mem_back_0 = de_stack_alloc.alloc_raw_back(MB, 4, 0).unwrap();
         de_stack_alloc.reset();
-        let mem_front_1 = de_stack_alloc.alloc(MB, 4, 0).unwrap();
+        let mem_front_1 = de_stack_alloc.alloc_raw(MB, 4, 0).unwrap();
         assert_eq!(mem_front_0.ptr, mem_front_1.ptr);
-        let mem_back_1 = de_stack_alloc.alloc_back(MB, 4, 0).unwrap();
+        let mem_back_1 = de_stack_alloc.alloc_raw_back(MB, 4, 0).unwrap();
         assert_eq!(mem_back_0.ptr, mem_back_1.ptr);
     }
 
     #[test]
     fn get_right_allocation_size() {
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_raw_0 = de_stack_alloc.alloc(MB * 2, 1, 0).unwrap();
+        let mem_raw_0 = de_stack_alloc.alloc_raw(MB * 2, 1, 0).unwrap();
         assert_eq!(de_stack_alloc.get_allocation_size(&mem_raw_0) == MB * 2, true);
-        let mem_raw_1 = de_stack_alloc.alloc(MB * 3, 1, 0).unwrap();
+        let mem_raw_1 = de_stack_alloc.alloc_raw(MB * 3, 1, 0).unwrap();
         assert_eq!(de_stack_alloc.get_allocation_size(&mem_raw_1) == MB * 3, true);
-        let mem_raw_2 = de_stack_alloc.alloc(MB * 4, 1, 0).unwrap();
+        let mem_raw_2 = de_stack_alloc.alloc_raw(MB * 4, 1, 0).unwrap();
         assert_eq!(de_stack_alloc.get_allocation_size(&mem_raw_2) == MB * 4, true);
     }
 
@@ -418,13 +417,13 @@ mod tests {
         }
 
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_0 = de_stack_alloc.alloc(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
+        let mem_0 = de_stack_alloc.alloc_raw(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
         let data_ref_0 = unsafe { &mut *(mem_0.ptr as *mut SomeData) };
 
         data_ref_0.pos = 101;
         data_ref_0.vel = 111;
 
-        let mem_1 = de_stack_alloc.alloc(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
+        let mem_1 = de_stack_alloc.alloc_raw(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
         let data_ref_1 = unsafe { &mut *(mem_1.ptr as *mut SomeData) };
 
         data_ref_1.pos = 202;
@@ -444,13 +443,13 @@ mod tests {
         }
 
         let de_stack_alloc = DoubleEndedStackAllocator::new(10 * MB);
-        let mem_0 = de_stack_alloc.alloc_back(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
+        let mem_0 = de_stack_alloc.alloc_raw_back(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
         let data_ref_0 = unsafe { &mut *(mem_0.ptr as *mut SomeData) };
 
         data_ref_0.pos = 101;
         data_ref_0.vel = 111;
 
-        let mem_1 = de_stack_alloc.alloc_back(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
+        let mem_1 = de_stack_alloc.alloc_raw_back(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
         let data_ref_1 = unsafe { &mut *(mem_1.ptr as *mut SomeData) };
 
         data_ref_1.pos = 202;

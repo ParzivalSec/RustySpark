@@ -1,4 +1,4 @@
-#![feature(ptr_internals)]
+#![feature(ptr_internals, core_intrinsics)]
 // Re-export utility modules for virtual memory allocations,
 // pointer operations (alignment, ...) and an intrusive linked list
 pub mod virtual_mem;

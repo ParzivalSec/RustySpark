@@ -1,5 +1,4 @@
 use std;
-use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::{ virtual_mem, pointer_util, freelist };
@@ -106,7 +105,7 @@ impl TypedAllocator for PoolAllocator {
 }
 
 impl Allocator for PoolAllocator {    
-    fn alloc(&self, size: usize, alignment: usize, _offset: usize) -> Option<MemoryBlock> {
+    fn alloc_raw(&self, size: usize, alignment: usize, _offset: usize) -> Option<MemoryBlock> {
         let storage = self.storage.borrow_mut();
 
         {
@@ -131,7 +130,7 @@ impl Allocator for PoolAllocator {
         Some(MemoryBlock::new(ptr))
     }
 
-    fn dealloc(&self, memory: MemoryBlock) {
+    fn dealloc_raw(&self, memory: MemoryBlock) {
         {
             // TODO: Asserts
         }
@@ -180,7 +179,7 @@ mod tests {
             0
         );
 
-        let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0);
+        let obj_0 = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 1, 0);
         assert!(obj_0.is_some());
     }
 
@@ -193,7 +192,7 @@ mod tests {
             0
         );
 
-        let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
+        let obj_0 = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 16, 0);
         assert!(obj_0.is_some());
         assert!(pointer_util::is_aligned_to(obj_0.unwrap().ptr, 16));
     }
@@ -207,7 +206,7 @@ mod tests {
             4
         );
 
-        let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>() + 8, 32, 4);
+        let obj_0 = pool_alloc.alloc_raw(std::mem::size_of::<Particle>() + 8, 32, 4);
         assert!(obj_0.is_some());
         let mem_block = obj_0.unwrap();
         assert!(!pointer_util::is_aligned_to(mem_block.ptr, 32));
@@ -225,7 +224,7 @@ mod tests {
         );
 
         for _ in 0 .. 3 {
-            let obj = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0);
+            let obj = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 1, 0);
             assert!(obj.is_some());
         }
     }
@@ -240,7 +239,7 @@ mod tests {
         );
 
         for _ in 0 .. 3 {
-            let obj = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
+            let obj = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 16, 0);
             assert!(obj.is_some());
             assert!(pointer_util::is_aligned_to(obj.unwrap().ptr, 16));
         }
@@ -261,11 +260,11 @@ mod tests {
         // hence triggering the oom in the last allocation request (a later implemented AllocatorBox will
         // add a safety layer for mem-leaks, deallocating the MemoryBlock when dropped)
         for _ in 0 .. 11 {
-            let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
+            let obj_0 = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 16, 0);
             assert!(obj_0.is_some());
         }
 
-        let obj_1 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
+        let obj_1 = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 16, 0);
         assert!(obj_1.is_none());
     }
 
@@ -282,7 +281,7 @@ mod tests {
 
         // Get 5 particles and fill them with value, remeber the blocks in a vec
         for i in 0 .. 5 {
-            let part_mem = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0).unwrap();
+            let part_mem = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 1, 0).unwrap();
             let particle: &mut Particle = unsafe { &mut *(part_mem.ptr as *mut Particle) };
 
             particle.lifetime = i as f32;
@@ -294,7 +293,7 @@ mod tests {
         let mut part_vec_1 = Vec::new();
         // Get another 5 particles into another vec
         for i in 5 .. 10 {
-            let part_mem = pool_alloc.alloc(std::mem::size_of::<Particle>(), 1, 0).unwrap();
+            let part_mem = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 1, 0).unwrap();
             let particle: &mut Particle = unsafe { &mut *(part_mem.ptr as *mut Particle) };
 
             particle.lifetime = i as f32;

@@ -26,7 +26,7 @@ impl<A: Allocator, B: BoundsChecker + Default> BasicMemoryRealm<A, B>
         let canary_size = self.bounds_checker.get_canary_size() as usize;
         let total_allocation_size = size + (canary_size * 2) as usize;
         
-        let block = self.allocator.alloc(total_allocation_size, alignment, canary_size);
+        let block = self.allocator.alloc_raw(total_allocation_size, alignment, canary_size);
         
         if block.is_none() {
             return None;
@@ -52,7 +52,7 @@ impl<A: Allocator, B: BoundsChecker + Default> BasicMemoryRealm<A, B>
             self.bounds_checker.validate_front_canary(allocated_ptr);
             self.bounds_checker.validate_back_canary(allocated_ptr.offset((allocation_size + canary_size) as isize));
 
-            self.allocator.dealloc(mem_block);
+            self.allocator.dealloc_raw(mem_block);
         }
     }
 
@@ -66,7 +66,6 @@ mod tests {
     use super::*;
     use super::super::allocators;
     use super::super::bounds_checker;
-    use super::super::super::pointer_util;
 
     #[test]
     fn linear_alloc_simple_bounds_checking_realm() {

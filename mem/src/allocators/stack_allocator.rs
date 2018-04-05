@@ -1,5 +1,4 @@
 use std;
-use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::{ virtual_mem, pointer_util };
@@ -78,7 +77,7 @@ impl BasicAllocator for StackAllocator {
 }
 
 impl Allocator for StackAllocator {
-    fn alloc(&self, size: usize, alignment: usize, offset: usize) -> Option<MemoryBlock> {
+    fn alloc_raw(&self, size: usize, alignment: usize, offset: usize) -> Option<MemoryBlock> {
         debug_assert!(pointer_util::is_pot(alignment), "Alignment needs to be a power of two");
 
         let mut allocator_storage = self.storage.borrow_mut();
@@ -118,7 +117,7 @@ impl Allocator for StackAllocator {
         }
     }
 
-    fn dealloc(&self, memory: MemoryBlock) {
+    fn dealloc_raw(&self, memory: MemoryBlock) {
         let raw_mem = memory.ptr;
 
         unsafe {
@@ -169,14 +168,14 @@ mod tests
     #[test]
     fn single_allocation() {
         let stack_allocator = StackAllocator::new(10 * MB);
-        let raw_mem = stack_allocator.alloc(256, 1, 0);
+        let raw_mem = stack_allocator.alloc_raw(256, 1, 0);
         assert!(raw_mem.is_some());
     }
 
     #[test]
     fn single_allocation_aligned() {
         let stack_allocator = StackAllocator::new(10 * MB);
-        let raw_mem = stack_allocator.alloc(256, 16, 0);
+        let raw_mem = stack_allocator.alloc_raw(256, 16, 0);
         assert!(raw_mem.is_some());
         assert!(pointer_util::is_aligned_to(raw_mem.unwrap().ptr, 16));
     }
@@ -184,7 +183,7 @@ mod tests
     #[test]
     fn single_allocation_aligned_with_offset() {
         let stack_allocator = StackAllocator::new(10 * MB);
-        let raw_mem = stack_allocator.alloc(MB + 8, 16, 4);
+        let raw_mem = stack_allocator.alloc_raw(MB + 8, 16, 4);
         assert!(raw_mem.is_some());
         let ptr = raw_mem.unwrap().ptr;
         assert!(!pointer_util::is_aligned_to(ptr, 16), "Pointer without offset applied was already aligned");
@@ -195,34 +194,34 @@ mod tests
     #[test]
     fn multiple_allocations() {
         let stack_allocator = StackAllocator::new(10 * MB);
-        let raw_mem_0 = stack_allocator.alloc(1 * MB, 1, 0);
+        let raw_mem_0 = stack_allocator.alloc_raw(1 * MB, 1, 0);
         assert!(raw_mem_0.is_some());
-        let raw_mem_1 = stack_allocator.alloc(1 * MB, 1, 0);
+        let raw_mem_1 = stack_allocator.alloc_raw(1 * MB, 1, 0);
         assert!(raw_mem_1.is_some());
-        let raw_mem_2 = stack_allocator.alloc(1 * MB, 1, 0);
+        let raw_mem_2 = stack_allocator.alloc_raw(1 * MB, 1, 0);
         assert!(raw_mem_2.is_some());
-        let raw_mem_3 = stack_allocator.alloc(1 * MB, 1, 0);
+        let raw_mem_3 = stack_allocator.alloc_raw(1 * MB, 1, 0);
         assert!(raw_mem_3.is_some());
     }
 
     #[test]
     fn returns_none_on_oom() {
         let stack_allocator = StackAllocator::new(10 * MB);
-        let raw_mem_0 = stack_allocator.alloc(6 * MB, 1, 0);
+        let raw_mem_0 = stack_allocator.alloc_raw(6 * MB, 1, 0);
         assert!(raw_mem_0.is_some());
-        let raw_mem_1 = stack_allocator.alloc(6 * MB, 1, 0);
+        let raw_mem_1 = stack_allocator.alloc_raw(6 * MB, 1, 0);
         assert!(raw_mem_1.is_none());
     }
 
     #[test]
     fn deallocate_mem() {
         let stack_allocator = StackAllocator::new(10 * MB);
-        let raw_mem_0 = stack_allocator.alloc(256, 1, 0).unwrap();
+        let raw_mem_0 = stack_allocator.alloc_raw(256, 1, 0).unwrap();
 
         unsafe { std::ptr::write(raw_mem_0.ptr as *mut u32, 0xDEADBEEF) };
-        stack_allocator.dealloc(raw_mem_0);
+        stack_allocator.dealloc_raw(raw_mem_0);
 
-        let raw_mem_1 = stack_allocator.alloc(256, 1, 0).unwrap();
+        let raw_mem_1 = stack_allocator.alloc_raw(256, 1, 0).unwrap();
         let marker = unsafe { std::ptr::read(raw_mem_1.ptr as *mut u32) };
 
         assert!(marker == 0xDEADBEEF, "Previously placed marker was not there after deallocation");
@@ -231,20 +230,20 @@ mod tests
     #[test]
     fn reset_whole_allocator() {
         let stack_allocator = StackAllocator::new(10 * MB);
-        let mem_raw_0 = stack_allocator.alloc(MB, 4, 0).unwrap();
+        let mem_raw_0 = stack_allocator.alloc_raw(MB, 4, 0).unwrap();
         stack_allocator.reset();
-        let mem_raw_1 = stack_allocator.alloc(MB, 4, 0).unwrap();
+        let mem_raw_1 = stack_allocator.alloc_raw(MB, 4, 0).unwrap();
         assert_eq!(mem_raw_0.ptr, mem_raw_1.ptr);
     }
 
     #[test]
     fn return_right_allocation_size() {
         let stack_allocator = StackAllocator::new(10 * MB);
-        let mem_raw_0 = stack_allocator.alloc(MB * 2, 1, 0).unwrap();
+        let mem_raw_0 = stack_allocator.alloc_raw(MB * 2, 1, 0).unwrap();
         assert_eq!(stack_allocator.get_allocation_size(&mem_raw_0) == MB * 2, true);
-        let mem_raw_1 = stack_allocator.alloc(MB * 3, 1, 0).unwrap();
+        let mem_raw_1 = stack_allocator.alloc_raw(MB * 3, 1, 0).unwrap();
         assert_eq!(stack_allocator.get_allocation_size(&mem_raw_1) == MB * 3, true);
-        let mem_raw_2 = stack_allocator.alloc(MB * 4, 1, 0).unwrap();
+        let mem_raw_2 = stack_allocator.alloc_raw(MB * 4, 1, 0).unwrap();
         assert_eq!(stack_allocator.get_allocation_size(&mem_raw_2) == MB * 4, true);
     }
 
@@ -256,13 +255,13 @@ mod tests
         }
 
         let stack_allocator = StackAllocator::new(10 * MB);
-        let mem_0 = stack_allocator.alloc(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
+        let mem_0 = stack_allocator.alloc_raw(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
         let data_ref_0 = unsafe { &mut *(mem_0.ptr as *mut SomeData) };
 
         data_ref_0.pos = 101;
         data_ref_0.vel = 111;
 
-        let mem_1 = stack_allocator.alloc(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
+        let mem_1 = stack_allocator.alloc_raw(std::mem::size_of::<SomeData>(), 1, 0).unwrap();
         let data_ref_1 = unsafe { &mut *(mem_1.ptr as *mut SomeData) };
 
         data_ref_1.pos = 202;
@@ -272,6 +271,32 @@ mod tests
         assert_eq!(data_ref_0.vel, 111);
         assert_eq!(data_ref_1.pos, 202);
         assert_eq!(data_ref_1.vel, 222);
+    }
+
+    #[test]
+    fn allocate_safely() {
+        struct Data {
+            pub result: f32,
+            pub id: usize,
+        }
+        
+        let stack_allocator: StackAllocator = StackAllocator::new(std::mem::size_of::<Data>() + 8);
+        {
+            let mut data_box = stack_allocator.alloc(Data { result: 1.0, id: 1 }, 1, 0).unwrap();
+            let data = &mut *data_box;
+
+            assert_eq!(data.result, 1.0);
+            assert_eq!(data.id, 1);
+
+            data.result = 2.0;
+            data.id = 2;
+
+            assert_eq!(data.result, 2.0);
+            assert_eq!(data.id, 2);
+        }
+
+        let data_box = stack_allocator.alloc(Data { result: 1.0, id: 1 }, 1, 0);
+        assert!(data_box.is_some(), "Second allocation failed, hence first AllocatorBox did not deallocate its MemoryBlock");
     }
 
 }

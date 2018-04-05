@@ -1,5 +1,4 @@
 use std;
-use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::pointer_util;
@@ -96,7 +95,7 @@ impl Allocator for LinearAllocator {
     /// can be used by the issuer to reserve some space for meta data right
     /// in front of the aligned pointer.
     ///
-    fn alloc(&self, size: usize, alignment: usize, offset: usize) 
+    fn alloc_raw(&self, size: usize, alignment: usize, offset: usize) 
         -> Option<MemoryBlock>
     {
         debug_assert!(pointer_util::is_pot(alignment), "Alignment needs to be a power of two");
@@ -131,7 +130,7 @@ impl Allocator for LinearAllocator {
     ///
     /// `dealloc` yields a no-op in this LinearAllocator
     ///
-    fn dealloc(&self, _memory: MemoryBlock) {}
+    fn dealloc_raw(&self, _memory: MemoryBlock) {}
 
     ///
     /// To free issued allocations one has to call `reset` to return the
@@ -171,14 +170,14 @@ mod tests
     #[test]
     fn single_allocation() {
         let linear_alloc: LinearAllocator = LinearAllocator::new(10 * MB);
-        let mem_raw = linear_alloc.alloc(MB, 1, 0);
+        let mem_raw = linear_alloc.alloc_raw(MB, 1, 0);
         assert!(mem_raw.is_some());
     }
 
     #[test]
     fn single_allocation_aligned() {
         let linear_alloc: LinearAllocator = LinearAllocator::new(10 * MB);
-        let mem_raw_aligned = linear_alloc.alloc(MB, 16, 0);
+        let mem_raw_aligned = linear_alloc.alloc_raw(MB, 16, 0);
         assert!(mem_raw_aligned.is_some());
         assert!(pointer_util::is_aligned_to(mem_raw_aligned.unwrap().ptr, 16));
     }
@@ -186,7 +185,7 @@ mod tests
     #[test]
     fn single_allocation_aligned_with_offset() {
         let linear_alloc: LinearAllocator = LinearAllocator::new(10 * MB);
-        let mem_raw_aligned = linear_alloc.alloc(MB + 8, 16, 4);
+        let mem_raw_aligned = linear_alloc.alloc_raw(MB + 8, 16, 4);
         assert!(mem_raw_aligned.is_some());
         let ptr = mem_raw_aligned.unwrap().ptr;
         assert!(!pointer_util::is_aligned_to(ptr, 16), "Pointer without offset applied was aligned");
@@ -197,31 +196,58 @@ mod tests
     #[test]
     fn multiple_allocations() {
         let linear_alloc: LinearAllocator = LinearAllocator::new(10 * MB);
-        let mem_raw_0 = linear_alloc.alloc(MB, 4, 0);
+        let mem_raw_0 = linear_alloc.alloc_raw(MB, 4, 0);
         assert!(mem_raw_0.is_some());
-        let mem_raw_1 = linear_alloc.alloc(MB, 4, 0);
+        let mem_raw_1 = linear_alloc.alloc_raw(MB, 4, 0);
         assert!(mem_raw_1.is_some());
-        let mem_raw_2 = linear_alloc.alloc(MB, 4, 0);
+        let mem_raw_2 = linear_alloc.alloc_raw(MB, 4, 0);
         assert!(mem_raw_2.is_some());
     }
 
     #[test]
     fn reset_whole_allocator() {
         let linear_alloc: LinearAllocator = LinearAllocator::new(10 * MB);
-        let mem_raw_0 = linear_alloc.alloc(MB, 4, 0).unwrap();
+        let mem_raw_0 = linear_alloc.alloc_raw(MB, 4, 0).unwrap();
         linear_alloc.reset();
-        let mem_raw_1 = linear_alloc.alloc(MB, 4, 0).unwrap();
+        let mem_raw_1 = linear_alloc.alloc_raw(MB, 4, 0).unwrap();
         assert_eq!(mem_raw_0.ptr, mem_raw_1.ptr);
     }
 
     #[test]
     fn return_right_allocation_size() {
         let linear_alloc: LinearAllocator = LinearAllocator::new(10 * MB);
-        let mem_raw_0 = linear_alloc.alloc(MB * 2, 1, 0).unwrap();
+        let mem_raw_0 = linear_alloc.alloc_raw(MB * 2, 1, 0).unwrap();
         assert_eq!(linear_alloc.get_allocation_size(&mem_raw_0) == MB * 2, true);
-        let mem_raw_1 = linear_alloc.alloc(MB * 3, 1, 0).unwrap();
+        let mem_raw_1 = linear_alloc.alloc_raw(MB * 3, 1, 0).unwrap();
         assert_eq!(linear_alloc.get_allocation_size(&mem_raw_1) == MB * 3, true);
-        let mem_raw_2 = linear_alloc.alloc(MB * 4, 1, 0).unwrap();
+        let mem_raw_2 = linear_alloc.alloc_raw(MB * 4, 1, 0).unwrap();
         assert_eq!(linear_alloc.get_allocation_size(&mem_raw_2) == MB * 4, true);
+    }
+
+    #[test]
+    fn allocate_safely() {
+        struct Data {
+            pub result: f32,
+            pub id: usize,
+        }
+        
+        let linear_alloc: LinearAllocator = LinearAllocator::new(std::mem::size_of::<Data>() + 4);
+
+        {
+            let mut data_box = linear_alloc.alloc(Data { result: 1.0, id: 1 }, 1, 0).unwrap();
+            let data = &mut(*data_box);
+
+            assert_eq!(data.result, 1.0);
+            assert_eq!(data.id, 1);
+
+            data.result = 2.0;
+            data.id = 2;
+
+            assert_eq!(data.result, 2.0);
+            assert_eq!(data.id, 2);
+        }
+
+        let data_box = linear_alloc.alloc(Data { result: 1.0, id: 1 }, 1, 0);
+        assert!(data_box.is_none(), "Second allocation did not fail, LinearAllocator does not allow freeing hence should be OOM");
     }
 }

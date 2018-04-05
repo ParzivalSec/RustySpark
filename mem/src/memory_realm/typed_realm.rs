@@ -35,7 +35,7 @@ impl<A: Allocator + TypedAllocator, B: BoundsChecker + Default> TypedMemoryRealm
         let canary_size = self.bounds_checker.get_canary_size() as usize;
         let _offset_not_needed = 0;
         
-        let block = self.allocator.alloc(size, alignment, _offset_not_needed);
+        let block = self.allocator.alloc_raw(size, alignment, _offset_not_needed);
 
         if block.is_none() {
             return None;
@@ -61,7 +61,7 @@ impl<A: Allocator + TypedAllocator, B: BoundsChecker + Default> TypedMemoryRealm
             self.bounds_checker.validate_front_canary(original_mem_block.ptr);
             self.bounds_checker.validate_back_canary(original_mem_block.ptr.offset((allocation_size + canary_size) as isize));
 
-            self.allocator.dealloc(original_mem_block);
+            self.allocator.dealloc_raw(original_mem_block);
         }
     }
 
