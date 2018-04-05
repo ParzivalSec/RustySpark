@@ -4,7 +4,7 @@ use std::cell::RefCell;
 
 use super::super::pointer_util;
 use super::super::virtual_mem;
-use super::base::{ Allocator, AllocatorMem, BasicAllocator };
+use super::base::{ Allocator, MemoryBlock, BasicAllocator };
 
 
 ///
@@ -60,7 +60,7 @@ impl LinearAllocatorStorage {
 /// LinearAllocator is the struct the user works with directly. Due to interior
 /// mutability ensured by the RefCell wrapping the storage a user can issue several
 /// allocations requests without freezing the allocator. The user does not loose
-/// checks for dangling AllocatorMemBlocks that would outlive the Allocator.
+/// checks for dangling MemoryBlocks that would outlive the Allocator.
 ///
 pub struct LinearAllocator {
     storage: RefCell<LinearAllocatorStorage>,
@@ -97,7 +97,7 @@ impl Allocator for LinearAllocator {
     /// in front of the aligned pointer.
     ///
     fn alloc(&self, size: usize, alignment: usize, offset: usize) 
-        -> Option<AllocatorMem>
+        -> Option<MemoryBlock>
     {
         debug_assert!(pointer_util::is_pot(alignment), "Alignment needs to be a power of two");
 
@@ -125,7 +125,7 @@ impl Allocator for LinearAllocator {
             allocator_storage.current_ptr = allocator_storage.current_ptr.offset((size + ALLOCATION_META_SIZE) as isize);
 
             Some(
-                AllocatorMem {
+                MemoryBlock {
                     ptr: user_ptr,
                     _phantom_slice: PhantomData,
                 }
@@ -136,12 +136,12 @@ impl Allocator for LinearAllocator {
     ///
     /// `dealloc` yields a no-op in this LinearAllocator
     ///
-    fn dealloc(&self, _memory: AllocatorMem) {}
+    fn dealloc(&self, _memory: MemoryBlock) {}
 
     ///
     /// To free issued allocations one has to call `reset` to return the
     /// allocator to its initial state. Be careful, at the moment this function
-    /// does invalidate ALL user managed AllocatorMemBlocks, without any
+    /// does invalidate ALL user managed MemoryBlockBlocks, without any
     /// safety mechanism for the user holding it
     ///
     fn reset(&self) {
@@ -150,9 +150,9 @@ impl Allocator for LinearAllocator {
     }
 
     ///
-    /// Returns the size of the allocation the AllocatorMemBlock refers to
+    /// Returns the size of the allocation the MemoryBlockBlock refers to
     ///
-    fn get_allocation_size(&self, memory: &AllocatorMem) -> usize
+    fn get_allocation_size(&self, memory: &MemoryBlock) -> usize
     {
         let alloc_header: &mut AllocationHeader;
 

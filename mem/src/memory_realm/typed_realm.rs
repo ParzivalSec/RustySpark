@@ -1,4 +1,4 @@
-use super::allocators::base::{ Allocator, AllocatorMem, TypedAllocator };
+use super::allocators::base::{ Allocator, MemoryBlock, TypedAllocator };
 use super::bounds_checker::base::{ BoundsChecker };
 
 ///
@@ -31,7 +31,7 @@ impl<A: Allocator + TypedAllocator, B: BoundsChecker + Default> TypedMemoryRealm
         }
     }
 
-    pub fn alloc(&self, size: usize, alignment: usize) -> Option<AllocatorMem> {
+    pub fn alloc(&self, size: usize, alignment: usize) -> Option<MemoryBlock> {
         let canary_size = self.bounds_checker.get_canary_size() as usize;
         let _offset_not_needed = 0;
         
@@ -47,15 +47,15 @@ impl<A: Allocator + TypedAllocator, B: BoundsChecker + Default> TypedMemoryRealm
             self.bounds_checker.write_canary(user_ptr);
             self.bounds_checker.write_canary(user_ptr.offset((size + canary_size) as isize));
 
-            Some(AllocatorMem::new(user_ptr.offset(canary_size as isize)))
+            Some(MemoryBlock::new(user_ptr.offset(canary_size as isize)))
         }
     }
 
-    pub fn dealloc(&self, mem_block: AllocatorMem) {
+    pub fn dealloc(&self, mem_block: MemoryBlock) {
         let canary_size = self.bounds_checker.get_canary_size() as usize;
 
         unsafe {
-            let original_mem_block = AllocatorMem { ptr: mem_block.ptr.offset(-(canary_size as isize)), ..mem_block };
+            let original_mem_block = MemoryBlock { ptr: mem_block.ptr.offset(-(canary_size as isize)), ..mem_block };
             let allocation_size = self.allocator.get_allocation_size(&original_mem_block);
 
             self.bounds_checker.validate_front_canary(original_mem_block.ptr);
@@ -90,7 +90,7 @@ mod tests {
         type TypedPool = TypedMemoryRealm<allocators::pool_allocator::PoolAllocator, bounds_checker::simple_bounds_checker::SimpleBoundsChecker>;
     
         let typed_pool = TypedPool::new(std::mem::size_of::<Particle>(), 10, 4);
-        let mut particles: Vec<AllocatorMem> = Vec::new();
+        let mut particles: Vec<MemoryBlock> = Vec::new();
 
         for i in 0 .. 10 {
             let mem = typed_pool.alloc(std::mem::size_of::<Particle>(), 4);

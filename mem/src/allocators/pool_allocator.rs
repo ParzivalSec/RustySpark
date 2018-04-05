@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::{ virtual_mem, pointer_util, freelist };
-use super::base::{ Allocator, AllocatorMem, TypedAllocator };
+use super::base::{ Allocator, MemoryBlock, TypedAllocator };
 
 ///
 /// The AllocationHeader struct describes meta-data
@@ -106,7 +106,7 @@ impl TypedAllocator for PoolAllocator {
 }
 
 impl Allocator for PoolAllocator {    
-    fn alloc(&self, size: usize, alignment: usize, _offset: usize) -> Option<AllocatorMem> {
+    fn alloc(&self, size: usize, alignment: usize, _offset: usize) -> Option<MemoryBlock> {
         let storage = self.storage.borrow_mut();
 
         {
@@ -128,13 +128,13 @@ impl Allocator for PoolAllocator {
             ptr = ptr.offset(ALLOCATION_META_SIZE as isize);
         }
 
-        Some(AllocatorMem {
+        Some(MemoryBlock {
             ptr,
             _phantom_slice: PhantomData,
         })
     }
 
-    fn dealloc(&self, memory: AllocatorMem) {
+    fn dealloc(&self, memory: MemoryBlock) {
         {
             // TODO: Asserts
         }
@@ -153,7 +153,7 @@ impl Allocator for PoolAllocator {
         );
     }
 
-    fn get_allocation_size(&self, memory: &AllocatorMem) -> usize {
+    fn get_allocation_size(&self, memory: &MemoryBlock) -> usize {
         let alloc_header: &mut AllocationHeader;
 
         unsafe {
@@ -259,10 +259,10 @@ mod tests {
         );
 
         // We can allocate more than 10 Particles bc of page size rounging when allocating virt-mem
-        // In fact we are leaking memory inside of this loop bc an AllocatorMem is in the responsibility
+        // In fact we are leaking memory inside of this loop bc an MemoryBlock is in the responsibility
         // of the user - and bc each get dropped at the end of the scope we leak the mem in the allocator
         // hence triggering the oom in the last allocation request (a later implemented AllocatorBox will
-        // add a safety layer for mem-leaks, deallocating the AllocatorMem when dropped)
+        // add a safety layer for mem-leaks, deallocating the MemoryBlock when dropped)
         for _ in 0 .. 11 {
             let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
             assert!(obj_0.is_some());

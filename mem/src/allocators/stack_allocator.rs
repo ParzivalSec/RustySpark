@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::{ virtual_mem, pointer_util };
-use super::base::{ Allocator, AllocatorMem, BasicAllocator };
+use super::base::{ Allocator, MemoryBlock, BasicAllocator };
 
 ///
 /// The AllocationHeader struct describes meta-data
@@ -78,7 +78,7 @@ impl BasicAllocator for StackAllocator {
 }
 
 impl Allocator for StackAllocator {
-    fn alloc(&self, size: usize, alignment: usize, offset: usize) -> Option<AllocatorMem> {
+    fn alloc(&self, size: usize, alignment: usize, offset: usize) -> Option<MemoryBlock> {
         debug_assert!(pointer_util::is_pot(alignment), "Alignment needs to be a power of two");
 
         let mut allocator_storage = self.storage.borrow_mut();
@@ -115,7 +115,7 @@ impl Allocator for StackAllocator {
             allocator_storage.current_ptr = allocator_storage.current_ptr.offset((size + ALLOCATION_META_SIZE) as isize);
 
             Some(
-                AllocatorMem {
+                MemoryBlock {
                     ptr: user_ptr,
                     _phantom_slice: PhantomData,
                 }
@@ -123,7 +123,7 @@ impl Allocator for StackAllocator {
         }
     }
 
-    fn dealloc(&self, memory: AllocatorMem) {
+    fn dealloc(&self, memory: MemoryBlock) {
         let raw_mem = memory.ptr;
 
         unsafe {
@@ -151,7 +151,7 @@ impl Allocator for StackAllocator {
         }
     }
 
-    fn get_allocation_size(&self, memory: &AllocatorMem) -> usize {
+    fn get_allocation_size(&self, memory: &MemoryBlock) -> usize {
         let alloc_header: &mut AllocationHeader;
 
         unsafe {

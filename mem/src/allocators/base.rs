@@ -1,19 +1,20 @@
 use std::marker::PhantomData;
+use std::ptr::Unique;
 
 ///
 /// Zero-cost abstraction over an allocation done by an allocator
 ///
 #[derive(Debug)]
-pub struct AllocatorMem<'a> {
+pub struct MemoryBlock<'a> {
     pub ptr: *mut u8,
     pub _phantom_slice: PhantomData<&'a mut [u8]>,
 }
 
-impl<'a> AllocatorMem<'a> {
+impl<'a> MemoryBlock<'a> {
     
     pub fn new(ptr: *mut u8) -> Self {
         debug_assert!(!ptr.is_null());
-        AllocatorMem {
+        MemoryBlock {
             ptr,
             _phantom_slice: PhantomData,
         }
@@ -28,10 +29,10 @@ impl<'a> AllocatorMem<'a> {
 /// issued by the user
 ///
 pub trait Allocator {
-    fn alloc(&self, size: usize, alignment: usize, offset: usize) -> Option<AllocatorMem>;
-    fn dealloc(&self, memory: AllocatorMem);
+    fn alloc(&self, size: usize, alignment: usize, offset: usize) -> Option<MemoryBlock>;
+    fn dealloc(&self, memory: MemoryBlock);
     fn reset(&self);
-    fn get_allocation_size(&self, memory: &AllocatorMem) -> usize;
+    fn get_allocation_size(&self, memory: &MemoryBlock) -> usize;
 }
 
 pub trait BasicAllocator {

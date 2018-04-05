@@ -1,4 +1,4 @@
-use super::allocators::base::{ Allocator, AllocatorMem, BasicAllocator };
+use super::allocators::base::{ Allocator, MemoryBlock, BasicAllocator };
 use super::bounds_checker::base::{ BoundsChecker };
 
 ///
@@ -22,7 +22,7 @@ impl<A: Allocator, B: BoundsChecker + Default> BasicMemoryRealm<A, B>
         }
     }
 
-    pub fn alloc(&self, size: usize, alignment: usize) -> Option<AllocatorMem> {
+    pub fn alloc(&self, size: usize, alignment: usize) -> Option<MemoryBlock> {
         let canary_size = self.bounds_checker.get_canary_size() as usize;
         let total_allocation_size = size + (canary_size * 2) as usize;
         
@@ -38,11 +38,11 @@ impl<A: Allocator, B: BoundsChecker + Default> BasicMemoryRealm<A, B>
             self.bounds_checker.write_canary(user_ptr);
             self.bounds_checker.write_canary(user_ptr.offset((size + canary_size) as isize));
 
-            Some(AllocatorMem::new(user_ptr.offset(canary_size as isize)))
+            Some(MemoryBlock::new(user_ptr.offset(canary_size as isize)))
         }
     }
 
-    pub fn dealloc(&self, mem_block: AllocatorMem) {
+    pub fn dealloc(&self, mem_block: MemoryBlock) {
         let canary_size = self.bounds_checker.get_canary_size() as usize;
 
         unsafe {
