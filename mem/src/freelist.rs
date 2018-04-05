@@ -1,6 +1,4 @@
-use std::mem;
-use std::ptr;
-use std::cell::Cell;
+use std::{ mem, cell::Cell };
 
 pub struct FreeList {
     pub list: Cell<*mut u8>,
