@@ -128,10 +128,7 @@ impl Allocator for PoolAllocator {
             ptr = ptr.offset(ALLOCATION_META_SIZE as isize);
         }
 
-        Some(MemoryBlock {
-            ptr,
-            _phantom_slice: PhantomData,
-        })
+        Some(MemoryBlock::new(ptr))
     }
 
     fn dealloc(&self, memory: MemoryBlock) {

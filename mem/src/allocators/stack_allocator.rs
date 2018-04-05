@@ -114,12 +114,7 @@ impl Allocator for StackAllocator {
             user_ptr = user_ptr.offset(ALLOCATION_META_SIZE as isize);
             allocator_storage.current_ptr = allocator_storage.current_ptr.offset((size + ALLOCATION_META_SIZE) as isize);
 
-            Some(
-                MemoryBlock {
-                    ptr: user_ptr,
-                    _phantom_slice: PhantomData,
-                }
-            )
+            Some(MemoryBlock::new(user_ptr))
         }
     }
 

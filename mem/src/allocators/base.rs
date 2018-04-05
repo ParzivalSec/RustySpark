@@ -7,7 +7,7 @@ use std::ptr::Unique;
 #[derive(Debug)]
 pub struct MemoryBlock<'a> {
     pub ptr: *mut u8,
-    pub _phantom_slice: PhantomData<&'a mut [u8]>,
+    pub _marker: PhantomData<&'a [u8]>,
 }
 
 impl<'a> MemoryBlock<'a> {
@@ -16,12 +16,21 @@ impl<'a> MemoryBlock<'a> {
         debug_assert!(!ptr.is_null());
         MemoryBlock {
             ptr,
-            _phantom_slice: PhantomData,
+            _marker: PhantomData,
         }
     }
 
     #[inline]
     pub fn is_empty(&self) -> bool { self.ptr.is_null() }
+}
+
+pub struct AllocatorBox<'a, T: 'a, A: 'a + Allocator> {
+    instance: Unique<T>,
+    allocator: &'a A,
+}
+
+impl<'a, T: 'a, A: 'a + Allocator> AllocatorBox<'a, T, A> {
+
 }
 
 ///
