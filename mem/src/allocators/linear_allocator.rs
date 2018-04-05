@@ -4,7 +4,7 @@ use std::cell::RefCell;
 
 use super::super::pointer_util;
 use super::super::virtual_mem;
-use super::allocator::{ Allocator, AllocatorMem };
+use super::base::{ Allocator, AllocatorMem, BasicAllocator };
 
 
 ///
@@ -67,11 +67,19 @@ pub struct LinearAllocator {
 }
 
 impl LinearAllocator {
-    ///
-    /// Creates a new LinearAllocator, forwarding the memory allocation
-    /// to the LinearAllocatorStorage
-    ///
     pub fn new(size: usize) -> LinearAllocator {
+        debug_assert!(size > 0usize, "Size is not allowed to be 0");
+
+        LinearAllocator {
+            storage: RefCell::new(LinearAllocatorStorage::new(size)),
+        }
+    }
+}
+
+impl BasicAllocator for LinearAllocator {
+    type AllocatorImplementation = LinearAllocator;
+
+    fn new(size: usize) -> Self::AllocatorImplementation {
         debug_assert!(size > 0usize, "Size is not allowed to be 0");
 
         LinearAllocator {

@@ -3,18 +3,18 @@ use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::{ virtual_mem, pointer_util, freelist };
-use super::allocator::{ Allocator, AllocatorMem };
+use super::base::{ Allocator, AllocatorMem, TypedAllocator };
 
-struct PoolAllocatorStorage {
-    pub use_internal_mem:       bool,
-    pub mem_begin:              *mut u8,
-    pub mem_end:                *mut u8,
-    pub first_block_ptr:        *mut u8,
-    pub max_element_size:       usize,
-    pub max_element_alignment:  usize,
-    pub min_block_size:         usize,
-    pub free_list:              freelist::FreeList,
+///
+/// The AllocationHeader struct describes meta-data
+/// the allocator needs to store alongside of the 
+/// allocations.
+///
+struct AllocationHeader {
+    pub allocation_size: u32,
 }
+
+const ALLOCATION_META_SIZE: usize = std::mem::size_of::<AllocationHeader>();
 
 fn round_to_next_multiple(num: usize, multiple: usize) -> usize {
     let remainer = num % multiple;
@@ -28,6 +28,17 @@ fn calculate_minimal_block_size(max_size: usize, max_alignment: usize) -> usize 
     else {
         round_to_next_multiple(max_size, max_alignment)
     }
+}
+
+struct PoolAllocatorStorage {
+    pub use_internal_mem:       bool,
+    pub mem_begin:              *mut u8,
+    pub mem_end:                *mut u8,
+    pub first_block_ptr:        *mut u8,
+    pub max_element_size:       usize,
+    pub max_element_alignment:  usize,
+    pub min_block_size:         usize,
+    pub free_list:              freelist::FreeList,
 }
 
 impl PoolAllocatorStorage {
@@ -51,11 +62,11 @@ impl PoolAllocatorStorage {
         let physical_address_space_end =  unsafe { physical_address_space.offset(size as isize) };
         
         let first_block_ptr = unsafe {
-            let signed_offset = offset as isize;
-            let mut aligned_ptr  = pointer_util::align_top(physical_address_space.offset(signed_offset), max_element_alignment) as *mut u8;
-            aligned_ptr = aligned_ptr.offset(-signed_offset);
+            let allocation_meta_offset = (offset + ALLOCATION_META_SIZE) as isize;
+            let aligned_ptr  = pointer_util::align_top(physical_address_space.offset(allocation_meta_offset), max_element_alignment) as *mut u8;
+            let before_aligned_ptr = aligned_ptr.offset(-allocation_meta_offset);
 
-            aligned_ptr
+            before_aligned_ptr
         };
 
         PoolAllocatorStorage {
@@ -75,9 +86,11 @@ pub struct PoolAllocator {
     storage: RefCell<PoolAllocatorStorage>,
 }
 
-impl PoolAllocator {
-    pub fn new(max_element_size: usize, element_count: usize, max_element_alignment: usize, offset: usize) -> PoolAllocator {
-        let block_min_size = calculate_minimal_block_size(max_element_size, max_element_alignment);
+impl TypedAllocator for PoolAllocator {
+    type AllocatorImplementation = PoolAllocator;
+
+    fn new(max_element_size: usize, element_count: usize, max_element_alignment: usize, offset: usize) -> Self::AllocatorImplementation {
+        let block_min_size = calculate_minimal_block_size(max_element_size + ALLOCATION_META_SIZE, max_element_alignment);
         let required_memory_size = (element_count * block_min_size) + max_element_alignment;
 
         PoolAllocator {
@@ -92,7 +105,7 @@ impl PoolAllocator {
     }
 }
 
-impl Allocator for PoolAllocator {
+impl Allocator for PoolAllocator {    
     fn alloc(&self, size: usize, alignment: usize, _offset: usize) -> Option<AllocatorMem> {
         let storage = self.storage.borrow_mut();
 
@@ -103,10 +116,16 @@ impl Allocator for PoolAllocator {
             debug_assert!(alignment_lesser_or_equal_max_element_alignment, "Alloc alignment has to be less or equal max element alignment");
         }
         
-        let ptr = storage.free_list.get_block();
+        let mut ptr = storage.free_list.get_block();
         
         if ptr.is_null() {
             return None;
+        }
+
+        unsafe {
+            let allocation_header = &mut *(ptr as *mut AllocationHeader);
+            allocation_header.allocation_size = size as u32;
+            ptr = ptr.offset(ALLOCATION_META_SIZE as isize);
         }
 
         Some(AllocatorMem {
@@ -121,7 +140,8 @@ impl Allocator for PoolAllocator {
         }
 
         let storage = self.storage.borrow_mut();
-        storage.free_list.return_block(memory.ptr);
+        let original_ptr = unsafe { memory.ptr.offset(-(ALLOCATION_META_SIZE as isize)) };
+        storage.free_list.return_block(original_ptr);
     }
 
     fn reset(&self) {
@@ -133,9 +153,15 @@ impl Allocator for PoolAllocator {
         );
     }
 
-    fn get_allocation_size(&self, _memory: &AllocatorMem) -> usize {
-        let storage = self.storage.borrow_mut();
-        storage.min_block_size
+    fn get_allocation_size(&self, memory: &AllocatorMem) -> usize {
+        let alloc_header: &mut AllocationHeader;
+
+        unsafe {
+            let alloc_header_ptr: *const u32 = memory.ptr.offset(-(ALLOCATION_META_SIZE as isize)) as *const u32;
+            alloc_header = &mut *(alloc_header_ptr as *mut AllocationHeader);
+        }
+
+        alloc_header.allocation_size as usize
     }
 }
 
@@ -237,7 +263,7 @@ mod tests {
         // of the user - and bc each get dropped at the end of the scope we leak the mem in the allocator
         // hence triggering the oom in the last allocation request (a later implemented AllocatorBox will
         // add a safety layer for mem-leaks, deallocating the AllocatorMem when dropped)
-        for _ in 0 .. 12 {
+        for _ in 0 .. 11 {
             let obj_0 = pool_alloc.alloc(std::mem::size_of::<Particle>(), 16, 0);
             assert!(obj_0.is_some());
         }

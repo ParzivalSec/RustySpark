@@ -34,7 +34,12 @@ pub trait Allocator {
     fn get_allocation_size(&self, memory: &AllocatorMem) -> usize;
 }
 
-///
-/// Marker trait to implicate that an Allocator can grow
-///
-pub trait GrowingAllocator {}
+pub trait BasicAllocator {
+    type AllocatorImplementation;
+    fn new(size: usize) -> Self::AllocatorImplementation;
+}
+
+pub trait TypedAllocator {
+    type AllocatorImplementation;
+    fn new(element_size: usize, element_count: usize, element_alignment: usize, offset: usize) -> Self::AllocatorImplementation;
+}

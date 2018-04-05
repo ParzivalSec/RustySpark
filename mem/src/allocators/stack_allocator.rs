@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::{ virtual_mem, pointer_util };
-use super::allocator::{ Allocator, AllocatorMem };
+use super::base::{ Allocator, AllocatorMem, BasicAllocator };
 
 ///
 /// The AllocationHeader struct describes meta-data
@@ -65,8 +65,10 @@ pub struct StackAllocator {
     storage: RefCell<StackAllocatorStorage>,
 }
 
-impl StackAllocator {
-    pub fn new(size: usize) -> StackAllocator {
+impl BasicAllocator for StackAllocator {
+    type AllocatorImplementation = StackAllocator;
+
+    fn new(size: usize) -> Self::AllocatorImplementation {
         debug_assert!(size > 0usize, "Size is not allowed to be 0");
 
         StackAllocator {

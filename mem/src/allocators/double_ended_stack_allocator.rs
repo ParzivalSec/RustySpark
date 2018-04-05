@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use std::cell::RefCell;
 
 use super::super::{ virtual_mem, pointer_util };
-use super::allocator::{ Allocator, AllocatorMem };
+use super::base::{ Allocator, AllocatorMem, BasicAllocator };
 
 ///
 /// The AllocationHeader struct describes meta-data
@@ -74,14 +74,6 @@ pub struct DoubleEndedStackAllocator {
 }
 
 impl DoubleEndedStackAllocator {
-    pub fn new(size: usize) -> DoubleEndedStackAllocator {
-        debug_assert!(size > 0usize, "Size is not allowed to be 0");
-
-        DoubleEndedStackAllocator {
-            storage: RefCell::new(DoubleEndedStackAllocatorStorage::new(size)),
-        }
-    }
-
     pub fn alloc_back(&self, size: usize, alignment: usize, offset: usize) -> Option<AllocatorMem> {
        debug_assert!(pointer_util::is_pot(alignment), "Alignment needs to be a power of two");
 
@@ -151,7 +143,20 @@ impl DoubleEndedStackAllocator {
     }
 }
 
+impl BasicAllocator for DoubleEndedStackAllocator {
+    type AllocatorImplementation = DoubleEndedStackAllocator;
+
+    fn new(size: usize) -> Self::AllocatorImplementation {
+        debug_assert!(size > 0usize, "Size is not allowed to be 0");
+
+        DoubleEndedStackAllocator {
+            storage: RefCell::new(DoubleEndedStackAllocatorStorage::new(size)),
+        }
+    }
+}
+
 impl Allocator for DoubleEndedStackAllocator {
+    
     fn alloc(&self, size: usize, alignment: usize, offset: usize) -> Option<AllocatorMem> {
         debug_assert!(pointer_util::is_pot(alignment), "Alignment needs to be a power of two");
 
