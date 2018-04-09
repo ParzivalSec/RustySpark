@@ -1,0 +1,6 @@
+[package]
+name = "spark_core"
+version = "0.1.0"
+authors = ["ParzivalSec <lukas.vogl12@gmail.com>"]
+
+[dependencies]

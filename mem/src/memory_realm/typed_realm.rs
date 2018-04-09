@@ -72,11 +72,12 @@ impl<A: Allocator + TypedAllocator, B: BoundsChecker + Default> TypedMemoryRealm
 
 #[cfg(test)]
 mod tests {
+    use std;
+    use spark_core::pointer_util;
+
     use super::*;
     use super::super::allocators;
     use super::super::bounds_checker;
-    use super::super::super::pointer_util;
-    use std;
 
     struct Particle {
         pub lifetime: f32,

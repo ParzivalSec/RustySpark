@@ -1,7 +1,8 @@
 use std;
 use std::cell::RefCell;
+use spark_core::pointer_util;
 
-use super::super::{ virtual_mem, pointer_util };
+use super::super::virtual_mem;
 use super::base::{ Allocator, MemoryBlock, BasicAllocator };
 
 ///
