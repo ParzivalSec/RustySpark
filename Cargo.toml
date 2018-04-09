@@ -4,8 +4,9 @@ version = "0.1.0"
 authors = ["ParzivalSec <lukas.vogl12@gmail.com>"]
 
 [dependencies]
-mem = { path = "mem" }
 spark_core = { path = "spark_core" }
+mem = { path = "mem" }
+container = { path = "container" }
 time = "0.1"
 
 [workspace]

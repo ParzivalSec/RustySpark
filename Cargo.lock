@@ -1,4 +1,11 @@
 [[package]]
+name = "container"
+version = "0.1.0"
+dependencies = [
+ "mem 0.1.0",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -20,6 +27,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "rusty_spark_benchmark"
 version = "0.1.0"
 dependencies = [
+ "container 0.1.0",
  "mem 0.1.0",
  "spark_core 0.1.0",
  "time 0.1.39 (registry+https://github.com/rust-lang/crates.io-index)",
