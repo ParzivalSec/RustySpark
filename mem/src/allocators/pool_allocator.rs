@@ -1,6 +1,6 @@
 use std;
 use std::cell::RefCell;
-use spark_core::{ pointer_util, freelist };
+use spark_core::{ pointer_util, freelist, math_util };
 
 use super::super::virtual_mem;
 use super::base::{ Allocator, MemoryBlock, TypedAllocator };
@@ -16,17 +16,12 @@ struct AllocationHeader {
 
 const ALLOCATION_META_SIZE: usize = std::mem::size_of::<AllocationHeader>();
 
-fn round_to_next_multiple(num: usize, multiple: usize) -> usize {
-    let remainer = num % multiple;
-    num - remainer + multiple * !!(remainer)
-}
-
 fn calculate_minimal_block_size(max_size: usize, max_alignment: usize) -> usize {
     if max_size < max_alignment {
         max_alignment
     }
     else {
-        round_to_next_multiple(max_size, max_alignment)
+        math_util::round_to_next_multiple(max_size, max_alignment)
     }
 }
 
