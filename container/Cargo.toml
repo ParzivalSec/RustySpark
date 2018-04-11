@@ -5,3 +5,4 @@ authors = ["ParzivalSec <lukas.vogl12@gmail.com>"]
 
 [dependencies]
 mem = { path = "../mem" }
+spark_core = { path = "../spark_core" }

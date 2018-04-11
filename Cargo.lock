@@ -3,6 +3,7 @@ name = "container"
 version = "0.1.0"
 dependencies = [
  "mem 0.1.0",
+ "spark_core 0.1.0",
 ]
 
 [[package]]
