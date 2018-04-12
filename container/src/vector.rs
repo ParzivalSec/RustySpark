@@ -1,7 +1,7 @@
 use std::mem;
-use std::ptr::{ Unique, self };
-use std::option::{ Option };
 use std::ops::{ Deref, DerefMut };
+use std::option::{ Option };
+use std::ptr::{ Unique, self };
 
 use spark_core::math_util;
 use mem::virtual_mem;
@@ -185,6 +185,25 @@ impl<T> Vector<T> {
         self.grow(new_capacity_in_bytes);
     }
 
+    pub fn shrink_to_fit(&mut self) {
+        	// We fullfill the request to handle unused capacity memory back to the OS
+			let commited_bytes = math_util::round_to_next_multiple(self.size * mem::size_of::<T>(), virtual_mem::get_page_size());
+			let pinned_capacity = commited_bytes / mem::size_of::<T>();
+			if self.capacity > pinned_capacity
+			{
+				// If we really have some committed pages that do not contain any used elements
+				// we can decommit them
+				let unused_mem = unsafe { (self.internal_array_begin.as_ptr() as *mut u8).offset(commited_bytes as isize) };
+				let bytes_to_decommit = self.internal_array_end as usize - unused_mem as usize;
+				virtual_mem::decommit_physical_memory(unused_mem, bytes_to_decommit);
+				self.capacity = pinned_capacity;
+			}
+    }
+
+    pub fn clear(&mut self) {
+        while let Some(_) = self.pop() {}
+    }
+
     pub fn size(&self) -> usize {
         self.size
     }
@@ -262,7 +281,7 @@ impl<T> Drop for Vector<T> {
     fn drop(&mut self) {
         if self.capacity == 0 {
             while let Some(_) = self.pop() {}
-            virtual_mem::free_address_space(self.internal_array_begin.as_ptr() as *mut u8);
+            virtual_mem::free_address_space(self.virtual_mem_begin as *mut u8);
         }
     }
 }
@@ -385,6 +404,41 @@ mod tests {
         assert_eq!(vec[1].data, 42);
         assert_eq!(vec[2].data, 42);
         assert_eq!(vec[3].data, 42);
+    }
+
+    #[test]
+    fn clear() {
+        let mut vec: Vector<Item> = Vector::new();
+    
+        vec.push(Item { data: 0xCC });
+        vec.push(Item { data: 0xDD });
+        vec.push(Item { data: 0xEE });
+        vec.push(Item { data: 0xFF });
+
+        vec.clear();
+
+        assert_eq!(vec.size(), 0);
+        assert_eq!(vec.capacity(), 512);
+    }
+
+     #[test]
+    fn shrink_to_fit() {
+        let mut vec: Vector<Item> = Vector::new();
+    
+        vec.reserve(600);
+        
+        vec.push(Item { data: 0xCC });
+        vec.push(Item { data: 0xDD });
+        vec.push(Item { data: 0xEE });
+        vec.push(Item { data: 0xFF });
+
+        assert_eq!(vec.size(), 4);
+        assert_eq!(vec.capacity(), 1024);
+
+        vec.shrink_to_fit();
+
+        assert_eq!(vec.size(), 4);
+        assert_eq!(vec.capacity(), 512);
     }
     
 }
