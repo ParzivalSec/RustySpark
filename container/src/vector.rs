@@ -39,6 +39,12 @@ impl<T> Vector<T> {
         }
     }
 
+    pub fn with_capacity(capacity: usize) -> Self {
+        let mut vec = Self::new();
+        vec.reserve(capacity);
+        vec
+    }
+
     pub fn push(&mut self, item: T) {
         if self.size == self.capacity {
             let grow_in_bytes = self.get_grow_size() * mem::size_of::<T>();
