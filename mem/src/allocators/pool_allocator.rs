@@ -255,7 +255,7 @@ mod tests {
         // of the user - and bc each get dropped at the end of the scope we leak the mem in the allocator
         // hence triggering the oom in the last allocation request (a later implemented AllocatorBox will
         // add a safety layer for mem-leaks, deallocating the MemoryBlock when dropped)
-        for _ in 0 .. 11 {
+        for _ in 0 .. 10 {
             let obj_0 = pool_alloc.alloc_raw(std::mem::size_of::<Particle>(), 16, 0);
             assert!(obj_0.is_some());
         }
