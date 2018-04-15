@@ -22,8 +22,8 @@ impl FreeList {
         memory = unsafe { memory.offset(signed_block_size) };
         
         unsafe {
-            for _ in 0 .. number_of_blocks {         
-                *current = memory.offset(signed_block_size);
+            for _ in 0 .. number_of_blocks - 1 {         
+                *current = memory;
                 current = *current as *mut *mut u8;
                 memory = memory.offset(signed_block_size);
             }
@@ -53,4 +53,6 @@ impl FreeList {
             self.list.set(returned_ptr);
 
     }
+
+    pub fn empty(&self) -> bool { self.list.get().is_null() }
 }
