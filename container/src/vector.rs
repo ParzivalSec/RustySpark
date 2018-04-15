@@ -222,7 +222,7 @@ impl<T> Vector<T> {
         self.size == 0
     }
 
-    fn max_elements(&self) -> usize {
+    pub fn max_elements(&self) -> usize {
         MAX_VECTOR_CAPACITY / mem::size_of::<T>()
     }
 
@@ -285,7 +285,7 @@ impl<T> DerefMut for Vector<T> {
 
 impl<T> Drop for Vector<T> {
     fn drop(&mut self) {
-        if self.capacity == 0 {
+        if self.capacity != 0 {
             while let Some(_) = self.pop() {}
             virtual_mem::free_address_space(self.virtual_mem_begin as *mut u8);
         }
