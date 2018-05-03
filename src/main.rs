@@ -25,6 +25,6 @@ fn main() {
 
         clock.start();
         scenarios::SCENARIOS[arguments[1].parse::<usize>().expect("Could not parse arg")]();
-        println!("{}", clock.get());
+        println!("{:.3}", clock.get());
     }
 }
