@@ -4,3 +4,5 @@ version = "0.1.0"
 authors = ["ParzivalSec <lukas.vogl12@gmail.com>"]
 
 [dependencies]
+winapi = { version = "0.3.4", features = ["sysinfoapi", "memoryapi", "winnt"] }
+kernel32-sys = "0.2.*"

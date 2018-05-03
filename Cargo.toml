@@ -8,5 +8,6 @@ spark_core = { path = "spark_core" }
 mem = { path = "mem" }
 container = { path = "container" }
 time = "0.1"
+libc = "0.2"
 
 [workspace]
