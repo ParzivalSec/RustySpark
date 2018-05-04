@@ -50,7 +50,7 @@ impl<A: Allocator, B: BoundsChecker + Default> BasicMemoryRealm<A, B>
             let allocation_size = self.allocator.get_allocation_size(&mem_block);
 
             self.bounds_checker.validate_front_canary(allocated_ptr);
-            self.bounds_checker.validate_back_canary(allocated_ptr.offset((allocation_size + canary_size) as isize));
+            self.bounds_checker.validate_back_canary(allocated_ptr.offset((allocation_size - canary_size) as isize));
 
             self.allocator.dealloc_raw(mem_block);
         }

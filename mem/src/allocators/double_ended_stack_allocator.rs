@@ -166,7 +166,7 @@ impl Allocator for DoubleEndedStackAllocator {
             allocator_storage.current_front_ptr = pointer_util::align_top(allocator_storage.current_front_ptr, alignment) as *mut u8;
 
             // If we overflow we cannot fulfill this allocation and return None
-            let allocation_overflows_end_block = allocator_storage.current_front_ptr.offset(size as isize) > allocator_storage.current_end_ptr;
+            let allocation_overflows_end_block = allocator_storage.current_end_ptr.offset((size - offset) as isize) > allocator_storage.mem_end;
             if  allocation_overflows_end_block {
                 return None;
             }

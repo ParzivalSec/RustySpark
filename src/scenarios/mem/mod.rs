@@ -1,1 +1,2 @@
 pub mod linear_allocator_benchmarks;
+pub mod linear_mem_realm_benchmarks;

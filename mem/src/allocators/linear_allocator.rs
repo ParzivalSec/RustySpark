@@ -110,7 +110,7 @@ impl Allocator for LinearAllocator {
             allocator_storage.current_ptr = pointer_util::align_top(allocator_storage.current_ptr, alignment) as *mut u8;
 
             // If we overflow we cannot fulfill this allocation and return None
-            let allocation_overflows = allocator_storage.current_ptr.offset(size as isize) > allocator_storage.mem_end;
+            let allocation_overflows = allocator_storage.current_ptr.offset((size - offset) as isize) > allocator_storage.mem_end;
             if  allocation_overflows {
                 return None;
             }

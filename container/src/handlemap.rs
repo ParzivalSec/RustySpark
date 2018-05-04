@@ -13,7 +13,7 @@ use spark_core::{math_util, freelist::FreeList };
 /// internal memory. When handed back to the HandleMap, the user can
 /// receive a reference to the object the handle refers to.
 ///
-type Handle = usize;
+pub type Handle = usize;
 
 struct HandleData
 {
