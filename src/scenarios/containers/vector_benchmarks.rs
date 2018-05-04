@@ -1,6 +1,6 @@
 use container::vector::Vector;
 
-const VEC_COUNT: usize = 1000;
+const VEC_COUNT: usize = 10_000;
 
 #[repr(C)]
 #[derive(Default)]
@@ -14,7 +14,7 @@ struct AllocationData {
 pub fn vec_1000_without_cap() {
     let mut vec: Vector<AllocationData> = Vector::new();
 
-    for idx in 0 .. VEC_COUNT {
+    for _idx in 0 .. VEC_COUNT {
         vec.push(AllocationData::default());
     }
 }
@@ -22,7 +22,7 @@ pub fn vec_1000_without_cap() {
 pub fn vec_1000_with_cap() {
     let mut vec: Vector<AllocationData> = Vector::with_capacity(VEC_COUNT);
 
-    for idx in 0 .. VEC_COUNT {
+    for _idx in 0 .. VEC_COUNT {
         vec.push(AllocationData::default());
     }
 }
@@ -30,7 +30,7 @@ pub fn vec_1000_with_cap() {
 pub fn vec_1000_iteration() {
     let mut vec: Vector<AllocationData> = Vector::with_capacity(VEC_COUNT);
 
-    for idx in 0 .. VEC_COUNT {
+    for _idx in 0 .. VEC_COUNT {
         vec.push(AllocationData::default());
     }
 
@@ -42,9 +42,9 @@ pub fn vec_1000_iteration() {
 pub fn vec_1000_erase_range() {
     let mut vec: Vector<AllocationData> = Vector::with_capacity(VEC_COUNT);
 
-    for idx in 0 .. VEC_COUNT {
+    for _idx in 0 .. VEC_COUNT {
         vec.push(AllocationData::default());
     }
 
-    vec.erase_range(0, 500);
+    vec.erase_range(0, VEC_COUNT / 2);
 }

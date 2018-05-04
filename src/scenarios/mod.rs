@@ -1,5 +1,6 @@
 pub mod mem;
 pub mod containers;
+pub mod ecs;
 
 pub type BenchmarkFunction = fn();
 
@@ -21,4 +22,17 @@ pub static SCENARIOS: &'static [BenchmarkFunction] = &[
     containers::handlemap_benchmarks::handlemap_1000_insertion,
     containers::handlemap_benchmarks::handlemap_1000_iteration,
     containers::handlemap_benchmarks::handlemap_1000_remove,
+    // Ringbuffer
+    containers::ringbuffer_benchmarks::ringbuffe_10000_write,
+    containers::ringbuffer_benchmarks::ringbuffer_10000_read,
+    containers::ringbuffer_benchmarks::ringbuffer_15000_write_wrapping,
+    // ECS
+    ecs::ecs_benchmarks::ecs_create_10000_with_pos,
+    ecs::ecs_benchmarks::ecs_create_100000_with_pos,
+    ecs::ecs_benchmarks::ecs_create_10000_with_pos_vel,
+    ecs::ecs_benchmarks::ecs_create_100000_with_pos_vel,
+    ecs::ecs_benchmarks::ecs_iterate_10000_pos,
+    ecs::ecs_benchmarks::ecs_iterate_100000_pos,
+    ecs::ecs_benchmarks::ecs_remove_5000_pos,
+    ecs::ecs_benchmarks::ecs_remove_50000_pos,
 ];

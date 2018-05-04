@@ -7,6 +7,14 @@ extern crate alloc_system;
 extern crate time;
 extern crate spark_core;
 
+// Calx-ECS
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+
+#[macro_use]
+extern crate calx_ecs;
+
 mod scenarios;
 
 use std::env;

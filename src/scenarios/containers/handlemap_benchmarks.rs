@@ -14,7 +14,7 @@ const HANDLEMAP_COUNT: u32 = 1000;
 pub fn handlemap_1000_insertion() {
     let mut handlemap: HandleMap<AllocationData> = HandleMap::new(HANDLEMAP_COUNT);
 
-    for idx in 0 .. HANDLEMAP_COUNT {
+    for _idx in 0 .. HANDLEMAP_COUNT {
         handlemap.insert(AllocationData::default());
     }
 }
@@ -23,7 +23,7 @@ pub fn handlemap_1000_iteration() {
     let mut handlemap: HandleMap<AllocationData> = HandleMap::new(HANDLEMAP_COUNT);
     let mut vec: Vec<Handle> = Vec::with_capacity(HANDLEMAP_COUNT as usize);
 
-    for idx in 0 .. HANDLEMAP_COUNT {
+    for _idx in 0 .. HANDLEMAP_COUNT {
         let handle = handlemap.insert(AllocationData::default()).unwrap();
         vec.push(handle);
     }
@@ -37,7 +37,7 @@ pub fn handlemap_1000_remove() {
     let mut handlemap: HandleMap<AllocationData> = HandleMap::new(HANDLEMAP_COUNT);
     let mut vec: Vec<Handle> = Vec::with_capacity(HANDLEMAP_COUNT as usize);
 
-    for idx in 0 .. HANDLEMAP_COUNT {
+    for _idx in 0 .. HANDLEMAP_COUNT {
         let handle = handlemap.insert(AllocationData::default()).unwrap();
         vec.push(handle);
     }
