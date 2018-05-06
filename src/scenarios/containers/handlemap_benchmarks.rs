@@ -9,7 +9,7 @@ struct AllocationData {
     pub data_block_4: [usize; 10],
 }
 
-const HANDLEMAP_COUNT: u32 = 1000;
+const HANDLEMAP_COUNT: u32 = 10000;
 
 pub fn handlemap_1000_insertion() {
     let mut handlemap: HandleMap<AllocationData> = HandleMap::new(HANDLEMAP_COUNT);

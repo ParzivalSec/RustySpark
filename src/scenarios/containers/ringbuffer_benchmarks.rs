@@ -1,7 +1,7 @@
 use container::ringbuffer::RingBuffer;
 
-const RINGBUFFER_COUNT : usize = 10000;
-const WRAPPING_OFFSET : usize  = 5000;
+const RINGBUFFER_COUNT : usize = 1000;
+const WRAPPING_OFFSET : usize  = 500;
  
 #[repr(C)]
 #[derive(Default, Copy, Clone)]
@@ -12,7 +12,7 @@ struct AllocationData {
     pub data_block_4: [usize; 10],
 }
 
-pub fn ringbuffe_10000_write()
+pub fn ringbuffe_1000_write()
 {
 	let mut ringbuffer = RingBuffer::new(RINGBUFFER_COUNT);
 
@@ -22,7 +22,7 @@ pub fn ringbuffe_10000_write()
 	}
 }
 
-pub fn ringbuffer_10000_read()
+pub fn ringbuffer_1000_read()
 {
 	let mut ringbuffer = RingBuffer::new(RINGBUFFER_COUNT);
 
@@ -37,7 +37,7 @@ pub fn ringbuffer_10000_read()
 	}
 }
 
-pub fn ringbuffer_15000_write_wrapping()
+pub fn ringbuffer_500_write_wrapping()
 {
 	let mut ringbuffer = RingBuffer::new(RINGBUFFER_COUNT);
 

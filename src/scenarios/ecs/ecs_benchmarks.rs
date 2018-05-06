@@ -1,5 +1,5 @@
 use std::mem;
-use calx_ecs::Entity;
+use calx_ecs::{ Entity, AnyComponent };
 
 const ENTITY_NUM: usize = 10_000;
 const ENTITY_NUM_LARGE: usize = 100_000;
@@ -126,7 +126,7 @@ pub fn ecs_remove_5000_pos() {
     }
 
     for idx in 0 .. ENTITY_NUM / 2 {
-        ecs.remove(entities[idx]);
+        ecs.pos.remove(entities[idx]);
     }
 }
 
@@ -142,6 +142,6 @@ pub fn ecs_remove_50000_pos() {
     }
 
     for idx in 0 .. ENTITY_NUM_LARGE / 2 {
-        ecs.remove(entities[idx]);
+        ecs.pos.remove(entities[idx]);
     }
 }

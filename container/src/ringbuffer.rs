@@ -1,17 +1,15 @@
-use vector::Vector;
-
 pub struct RingBuffer<T: Copy> {
     empty:      bool,
     write_idx:  usize,
     read_idx:   usize,
     capacity:   usize,
-    items:      Vector<T>,
+    items:      Vec<T>,
 }
 
 impl<T: Copy + Default> RingBuffer<T> {
     pub fn new(capacity: usize) -> Self {
-        let mut items = Vector::with_capacity(capacity);
-        items.resize(capacity);
+        let mut items = Vec::with_capacity(capacity);
+        items.resize(capacity, T::default());
 
         RingBuffer {
             empty:      true,
@@ -24,19 +22,23 @@ impl<T: Copy + Default> RingBuffer<T> {
 
     pub fn write(&mut self, item: T) 
     {
+        if self.write_idx == self.read_idx && !self.empty{
+            self.read_idx += 1;
+        }
+
         self.empty = false;
 
         self.items[self.write_idx] = item;
         self.write_idx = (self.write_idx + 1) % self.capacity;
-
-        if self.write_idx == self.read_idx {
-            self.read_idx += 1;
-        }
     }
 
     pub fn write_clone(&mut self, item: &T) 
         where T: Clone
     {
+        if self.write_idx == self.read_idx && !self.empty{
+            self.read_idx += 1;
+        }
+
         self.empty = false;
 
         self.items[self.write_idx] = item.clone();

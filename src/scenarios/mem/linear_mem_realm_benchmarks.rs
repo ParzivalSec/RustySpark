@@ -20,17 +20,17 @@ struct AllocationData {
     pub data_block_4: [usize; 10],
 }
 
-pub fn memory_realm_linear_100_objects_unsafe() {
+pub fn memory_realm_linear_1000_objects_unsafe() {
     unsafe {
-        let mut allocations: [*mut AllocationData; 100] = mem::uninitialized();
-        let realm = LinearBoundsCheckedRealm::new(100 * (mem::size_of::<AllocationData>() + LINEAR_OVERHEAD + CANARY_OVERHEAD));
+        let mut allocations: [*mut AllocationData; 1000] = mem::uninitialized();
+        let realm = LinearBoundsCheckedRealm::new(1000 * (mem::size_of::<AllocationData>() + LINEAR_OVERHEAD + CANARY_OVERHEAD));
 
-        for idx in 0 .. 100 {
+        for idx in 0 .. 1000 {
             allocations[idx] = realm.alloc(mem::size_of::<AllocationData>(), 1).unwrap().ptr as *mut AllocationData;
             ptr::write(allocations[idx], AllocationData::default());
         }
 
-        for idx in 0 .. 100 {
+        for idx in 0 .. 1000 {
             realm.dealloc(MemoryBlock::new(allocations[idx] as *mut u8));
         }
     }
